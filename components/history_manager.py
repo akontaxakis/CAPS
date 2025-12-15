@@ -1,7 +1,6 @@
 import heapq
 import os
 
-
 def rank_based_materializer(artifact_graph, Budget):
     pq = []
     materialized_artifacts = []
@@ -87,7 +86,7 @@ def update_and_merge_graphs(EX, MP):
     return EX
 
 
-def extract_nodes_and_edges(artifact_graph, uid, type, iteration, graph_dir='graphs/iteration_graphs'):
+def extract_nodes_and_edges(artifact_graph, uid, type, iteration, graph_dir='saved_graphs/iteration_graphs'):
     os.makedirs(graph_dir, exist_ok=True)
     graph_file = uid + "_" + type + "_" + str(iteration)
     shared_graph_path = os.path.join(graph_dir, graph_file)

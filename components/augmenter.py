@@ -32,7 +32,7 @@ def create_equivalent_graph_without_fit(artifact_graph_2):
 
 # used
 def new_eq_edges(execution_graph, equivalent_graph, mode):
-    # Get the edges from both graphs
+    # Get the edges from both saved_graphs
     new_tasks = []
     additional_cost = 0
     produced_artifacts = []
@@ -70,7 +70,7 @@ def new_eq_edges(execution_graph, equivalent_graph, mode):
 
 # used
 def new_edges(artifact_graph_0, artifact_graph_1):
-    # Get the edges from both graphs
+    # Get the edges from both saved_graphs
     tasks_0 = set(artifact_graph_0.edges())
     tasks_1 = set(artifact_graph_1.edges())
     diff = tasks_1 - tasks_0
@@ -184,15 +184,9 @@ def merge_EQ_nodes(artifact_graph):
 
             if modified_node in nodes:
                 # Create averages node with modified label (without "GPU")
-                # if modified_node in artifact_graph.nodes():
-                # print("current")
-                # print(artifact_graph.in_edges(node, data=True))
                 s1 = artifact_graph.nodes[node]['size']
-                # print(artifact_graph.in_edges(modified_node, data=True))
                 s2 = artifact_graph.nodes[modified_node]['size']
-                # artifact_graph = nx.contracted_nodes(artifact_graph, modified_node, node)
                 modified_graph = merge_nodes_3(modified_graph, modified_node, node)
-                # print("modified")
                 print(modified_graph.in_edges(modified_node, data=True))
                 print(modified_graph.out_edges(modified_node, data=True))
                 modified_graph.nodes[modified_node]['size'] = min(s1, s2)
@@ -233,7 +227,6 @@ def merge_nodes(G: object, node1: object, node2: object, nodes_to_remove) -> obj
 
     # Remove node2 from the graph
     nodes_to_remove.append(node2)
-    # G.remove_node(node2)
     return G, nodes_to_remove
 
 
