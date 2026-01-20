@@ -544,10 +544,275 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from ConfigSpace import Configuration
 
-def config_to_pipeline(config: Configuration):
+
+def config_to_pipeline(config: Configuration, seed):
+
+    from sklearn.pipeline import Pipeline
+    from sklearn.model_selection import StratifiedKFold, cross_val_score
+
+    from sklearn.preprocessing import (
+        Binarizer, MaxAbsScaler, MinMaxScaler,
+        Normalizer, RobustScaler, StandardScaler
+    )
+    from sklearn.decomposition import PCA, FastICA
+    from sklearn.cluster import FeatureAgglomeration
+    from sklearn.kernel_approximation import Nystroem, RBFSampler
+    from sklearn.preprocessing import PolynomialFeatures
+
+    from sklearn.feature_selection import (
+        SelectFwe, SelectPercentile, VarianceThreshold,
+        RFE, SelectFromModel
+    )
+    from sklearn.feature_selection import f_classif
+
+    from sklearn.naive_bayes import GaussianNB, BernoulliNB, MultinomialNB
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.ensemble import (
+        RandomForestClassifier, ExtraTreesClassifier,
+        GradientBoostingClassifier
+    )
+    from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.svm import LinearSVC
+    from sklearn.linear_model import LogisticRegression, SGDClassifier
+    from sklearn.neural_network import MLPClassifier
+    from xgboost import XGBClassifier
+
+    from tpot.builtins import ZeroCount
+
+    try:
+        # ==================================================
+        # Preprocessing
+        # ==================================================
+
+        prep_name = config['preprocessing']
+        if prep_name == 'None':
+            preprocessing = None
+        elif prep_name == 'sklearn.preprocessing.Binarizer':
+            preprocessing = Binarizer(threshold=config['Binarizer__threshold'])
+        elif prep_name == 'sklearn.preprocessing.MaxAbsScaler':
+            preprocessing = MaxAbsScaler()
+        elif prep_name == 'sklearn.preprocessing.MinMaxScaler':
+            preprocessing = MinMaxScaler()
+        elif prep_name == 'sklearn.preprocessing.Normalizer':
+            preprocessing = Normalizer(norm=config['Normalizer__norm'])
+        elif prep_name == 'sklearn.preprocessing.RobustScaler':
+            preprocessing = RobustScaler()
+        elif prep_name == 'sklearn.preprocessing.StandardScaler':
+            preprocessing = StandardScaler()
+        else:
+            raise ValueError(prep_name)
+
+        # ==================================================
+        # Feature engineering
+        # ==================================================
+
+        fe_name = config['feature_engineering']
+        if fe_name == 'None':
+            fe = None
+        elif fe_name == 'sklearn.decomposition.FastICA':
+            fe = FastICA(tol=config['FastICA__tol'], random_state=seed)
+        elif fe_name == 'sklearn.cluster.FeatureAgglomeration':
+            fe = FeatureAgglomeration(
+                linkage=config['FeatureAgglomeration__linkage'],
+                affinity=config['FeatureAgglomeration__affinity']
+            )
+        elif fe_name == 'sklearn.kernel_approximation.Nystroem':
+            fe = Nystroem(
+                kernel=config['Nystroem__kernel'],
+                gamma=config['Nystroem__gamma'],
+                n_components=config['Nystroem__n_components'],
+                random_state=seed
+            )
+        elif fe_name == 'sklearn.decomposition.PCA':
+            fe = PCA(
+                svd_solver=config['PCA__svd_solver'],
+                iterated_power=config['PCA__iterated_power'],
+                random_state=seed
+            )
+        elif fe_name == 'sklearn.preprocessing.PolynomialFeatures':
+            fe = PolynomialFeatures(
+                degree=config['PolynomialFeatures__degree'],
+                include_bias=config['PolynomialFeatures__include_bias'],
+                interaction_only=config['PolynomialFeatures__interaction_only']
+            )
+        elif fe_name == 'sklearn.kernel_approximation.RBFSampler':
+            fe = RBFSampler(
+                gamma=config['RBFSampler__gamma'],
+                random_state=seed
+            )
+        elif fe_name == 'tpot.builtins.ZeroCount':
+            fe = ZeroCount()
+        elif fe_name == 'sklearn.feature_selection.SelectFwe':
+            fe = SelectFwe(
+                alpha=config['SelectFwe__alpha'],
+                score_func=f_classif
+            )
+        elif fe_name == 'sklearn.feature_selection.SelectPercentile':
+            fe = SelectPercentile(
+                percentile=config['SelectPercentile__percentile'],
+                score_func=f_classif
+            )
+        elif fe_name == 'sklearn.feature_selection.VarianceThreshold':
+            fe = VarianceThreshold(
+                threshold=config['VarianceThreshold__threshold']
+            )
+        elif fe_name == 'sklearn.feature_selection.RFE':
+            fe = RFE(
+                estimator=ExtraTreesClassifier(
+                    n_estimators=100,
+                    criterion='gini',
+                    max_features=0.5,
+                    random_state=seed
+                ),
+                step=config['RFE__step']
+            )
+        elif fe_name == 'sklearn.feature_selection.SelectFromModel':
+            fe = SelectFromModel(
+                estimator=ExtraTreesClassifier(
+                    n_estimators=100,
+                    criterion='gini',
+                    max_features=0.5,
+                    random_state=seed
+                ),
+                threshold=config['SelectFromModel__threshold']
+            )
+        else:
+            raise ValueError(fe_name)
+
+        # ==================================================
+        # Classifier
+        # ==================================================
+
+        clf_name = config['classifier']
+        if clf_name == 'sklearn.naive_bayes.GaussianNB':
+            clf = GaussianNB()
+        elif clf_name == 'sklearn.naive_bayes.BernoulliNB':
+            clf = BernoulliNB(
+                alpha=config['BernoulliNB__alpha'],
+                fit_prior=config['BernoulliNB__fit_prior']
+            )
+        elif clf_name == 'sklearn.naive_bayes.MultinomialNB':
+            clf = MultinomialNB(
+                alpha=config['MultinomialNB__alpha'],
+                fit_prior=config['MultinomialNB__fit_prior']
+            )
+        elif clf_name == 'sklearn.tree.DecisionTreeClassifier':
+            clf = DecisionTreeClassifier(
+                criterion=config['DecisionTreeClassifier__criterion'],
+                max_depth=config['DecisionTreeClassifier__max_depth'],
+                min_samples_split=config['DecisionTreeClassifier__min_samples_split'],
+                min_samples_leaf=config['DecisionTreeClassifier__min_samples_leaf'],
+                random_state=seed
+            )
+        elif clf_name == 'sklearn.ensemble.RandomForestClassifier':
+            clf = RandomForestClassifier(
+                n_estimators=100,
+                max_features=config['RandomForestClassifier__max_features'],
+                min_samples_split=config['RandomForestClassifier__min_samples_split'],
+                min_samples_leaf=config['RandomForestClassifier__min_samples_leaf'],
+                criterion=config['RandomForestClassifier__criterion'],
+                bootstrap=config['RandomForestClassifier__bootstrap'],
+                random_state=seed
+            )
+        elif clf_name == 'sklearn.ensemble.ExtraTreesClassifier':
+            clf = ExtraTreesClassifier(
+                n_estimators=100,
+                max_features=config['ExtraTreesClassifier__max_features'],
+                min_samples_split=config['ExtraTreesClassifier__min_samples_split'],
+                min_samples_leaf=config['ExtraTreesClassifier__min_samples_leaf'],
+                criterion=config['ExtraTreesClassifier__criterion'],
+                bootstrap=config['ExtraTreesClassifier__bootstrap'],
+                random_state=seed
+            )
+        elif clf_name == 'sklearn.ensemble.GradientBoostingClassifier':
+            clf = GradientBoostingClassifier(
+                n_estimators=100,
+                learning_rate=config['GradientBoostingClassifier__learning_rate'],
+                max_depth=config['GradientBoostingClassifier__max_depth'],
+                min_samples_split=config['GradientBoostingClassifier__min_samples_split'],
+                min_samples_leaf=config['GradientBoostingClassifier__min_samples_leaf'],
+                subsample=config['GradientBoostingClassifier__subsample'],
+                max_features=config['GradientBoostingClassifier__max_features'],
+                random_state=seed
+            )
+        elif clf_name == 'sklearn.neighbors.KNeighborsClassifier':
+            clf = KNeighborsClassifier(
+                n_neighbors=config['KNeighborsClassifier__n_neighbors'],
+                weights=config['KNeighborsClassifier__weights'],
+                p=config['KNeighborsClassifier__p']
+            )
+        elif clf_name == 'sklearn.svm.LinearSVC':
+            clf = LinearSVC(
+                C=config['LinearSVC__C'],
+                loss=config['LinearSVC__loss'],
+                penalty=config['LinearSVC__penalty'],
+                dual=config['LinearSVC__dual'],
+                tol=config['LinearSVC__tol'],
+                random_state=seed
+            )
+        elif clf_name == 'sklearn.linear_model.LogisticRegression':
+            clf = LogisticRegression(
+                C=config['LogisticRegression__C'],
+                penalty=config['LogisticRegression__penalty'],
+                dual=config['LogisticRegression__dual'],
+                max_iter=1000,
+                random_state=seed
+            )
+        elif clf_name == 'sklearn.linear_model.SGDClassifier':
+            clf = SGDClassifier(
+                loss=config['SGDClassifier__loss'],
+                alpha=config['SGDClassifier__alpha'],
+                learning_rate=config['SGDClassifier__learning_rate'],
+                fit_intercept=config['SGDClassifier__fit_intercept'],
+                l1_ratio=config['SGDClassifier__l1_ratio'],
+                eta0=config['SGDClassifier__eta0'],
+                power_t=config['SGDClassifier__power_t'],
+                random_state=seed
+            )
+        elif clf_name == 'sklearn.neural_network.MLPClassifier':
+            clf = MLPClassifier(
+                alpha=config['MLPClassifier__alpha'],
+                learning_rate_init=config['MLPClassifier__learning_rate_init'],
+                random_state=seed,
+                max_iter=200
+            )
+        elif clf_name == 'xgboost.XGBClassifier':
+            clf = XGBClassifier(
+                n_estimators=100,
+                max_depth=config['XGBClassifier__max_depth'],
+                learning_rate=config['XGBClassifier__learning_rate'],
+                subsample=config['XGBClassifier__subsample'],
+                min_child_weight=config['XGBClassifier__min_child_weight'],
+                verbosity=0,
+                n_jobs=1,
+                random_state=seed,
+                use_label_encoder=False,
+                eval_metric='logloss'
+            )
+        else:
+            raise ValueError(clf_name)
+
+        # ==================================================
+        # Pipeline + evaluation
+        # ==================================================
+
+        steps = []
+        if preprocessing is not None:
+            steps.append(('preprocessing', preprocessing))
+        if fe is not None:
+            steps.append(('feature_engineering', fe))
+        steps.append(('classifier', clf))
+
+        pipeline = Pipeline(steps)
+
+        return pipeline
+
+    except Exception:
+        return 0
+
+def config_to_pipeline_small(config: Configuration, seed):
     """Train a model based on the configuration provided and return the validation error."""
     # Preprocessor configuration
-    seed=0
     preprocessor_name = config['preprocessor']
     if preprocessor_name == 'sklearn.preprocessing.Binarizer':
         preprocessor = Binarizer(threshold=config.get('Binarizer__threshold', 0.0))

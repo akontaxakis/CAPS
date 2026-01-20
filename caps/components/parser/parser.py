@@ -255,6 +255,7 @@ def execute_pipeline(dataset, pipeline, split_ratio):
 def extract_artifact_graph(dataset, pipeline,X=None, y=None):
     artifact_graph = nx.DiGraph()
     artifacts = []
+    print(pipeline)
     new_pipeline = clone(pipeline)
     artifact_graph = pipeline_training(artifact_graph, dataset, new_pipeline,X, y)
     artifact_graph, request = pipeline_evaluation(artifact_graph, dataset, new_pipeline)

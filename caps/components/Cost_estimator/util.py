@@ -133,19 +133,21 @@ def execute_with_timeout(func, timeout, *args, **kwargs):
             return None
 
 
-def random_extracting_training_with_manager(
-    mode, D, sampled_param_grid, opt_name, opt_class
-):
+def random_extracting_training_with_manager(mode, D, sampled_param_grid, opt_name, opt_class):
     results = []
     d, n, f, c = extract_mode(mode)
-    timeout = 600
-
+    # D.data['X_train']
+    # D.data['Y_train']
+    # D.data['X_valid']
+    # D.data['X_test']
+    timeout  = 600
     X = D.data['X_train']
     y = D.data['Y_train']
 
+    # Ensure max_samples does not exceed the number of available samples
     max_samples = X.shape[0]
 
-    # ---- sample rows ----
+    # Generate a rdrnrfrc number of samples, with a minimum of 1000
     if n == "r":
         n_samples = np.random.randint(1000, max_samples + 1)
         sampled_indices = np.random.choice(X.shape[0], n_samples, replace=False)
@@ -153,97 +155,83 @@ def random_extracting_training_with_manager(
         y = y[sampled_indices]
     else:
         n_samples = max_samples
-
-    # ---- sample features ----
     if f == "r":
         n_features = np.random.randint(1, X.shape[1] + 1)
+        # Randomly select a set of features
         feature_indices = np.random.choice(X.shape[1], n_features, replace=False)
+        # Randomly sample the dataset
         sampled_indices = np.random.choice(X.shape[0], n_samples, replace=False)
         X = X[sampled_indices][:, feature_indices]
         y = y[sampled_indices]
     else:
         n_features = X.shape[1]
 
+    # Output the shapes of the sampled arrays
     print(f"Shape of X: {X.shape}")
     print(f"Shape of y: {y.shape}")
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42
-    )
+    n_features = X.shape[1]
+    n_samples = X.shape[0]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
     for param_set in sampled_param_grid:
         opt = opt_class(**param_set)
         params = opt.get_params()
 
-        # ---------- FIT ----------
         if hasattr(opt, "fit"):
-            try:
-                start_time = time.time()
-                execute_with_timeout(opt.fit, timeout, X_train, y_train)
-                fit_time = time.time() - start_time
+            start_time = time.time()
+            fit_result = execute_with_timeout(opt.fit, timeout, X_train, y_train)
+            end_time = time.time()
+            fit_time = end_time - start_time
+            results.append({
+                'n_features': n_features,
+                'n_samples': n_samples,
+                'classifier': opt_name,
+                'parameters': params,
+                'execution_time': fit_time,
+                'task': "fit"
+            })
 
-                results.append({
-                    'n_features': X_train.shape[1],
-                    'n_samples': X_train.shape[0],
-                    'classifier': opt_name,
-                    'parameters': params,
-                    'execution_time': fit_time,
-                    'task': "fit"
-                })
-
-            except (ValueError, RuntimeError, TimeoutError):
-                continue
-
-        # ---------- TRANSFORM ----------
         if hasattr(opt, "transform"):
-            try:
-                start_time = time.time()
-                execute_with_timeout(opt.transform, timeout, X_train)
-                exec_time = time.time() - start_time
+            start_time = time.time()
+            transform_train_result = execute_with_timeout(opt.transform, timeout, X_train)
+            end_time = time.time()
+            exec_time = end_time - start_time
+            results.append({
+                'n_features': X_train.shape[1],
+                'n_samples': X_train.shape[0],
+                'classifier': opt_name,
+                'parameters': params,
+                'execution_time': exec_time,
+                'task': "transform"
+            })
 
-                results.append({
-                    'n_features': X_train.shape[1],
-                    'n_samples': X_train.shape[0],
-                    'classifier': opt_name,
-                    'parameters': params,
-                    'execution_time': exec_time,
-                    'task': "transform"
-                })
+            start_time = time.time()
+            transform_test_result = execute_with_timeout(opt.transform, timeout, X_test)
+            end_time = time.time()
+            exec_time = end_time - start_time
+            results.append({
+                'n_features': X_test.shape[1],
+                'n_samples': X_test.shape[0],
+                'classifier': opt_name,
+                'parameters': params,
+                'execution_time': exec_time,
+                'task': "transform"
+            })
 
-                start_time = time.time()
-                execute_with_timeout(opt.transform, timeout, X_test)
-                exec_time = time.time() - start_time
-
-                results.append({
-                    'n_features': X_test.shape[1],
-                    'n_samples': X_test.shape[0],
-                    'classifier': opt_name,
-                    'parameters': params,
-                    'execution_time': exec_time,
-                    'task': "transform"
-                })
-
-            except (ValueError, RuntimeError, TimeoutError):
-                continue
-
-        # ---------- PREDICT ----------
         if hasattr(opt, "predict"):
-            try:
-                start_time = time.time()
-                execute_with_timeout(opt.predict, timeout, X_test)
-                exec_time = time.time() - start_time
-
-                results.append({
-                    'n_features': X_test.shape[1],
-                    'n_samples': X_test.shape[0],
-                    'classifier': opt_name,
-                    'parameters': params,
-                    'execution_time': exec_time,
-                    'task': "predict"
-                })
-
-            except (ValueError, RuntimeError, TimeoutError):
-                continue
+            start_time = time.time()
+            predict_result = execute_with_timeout(opt.predict, 600, X_test)
+            end_time = time.time()
+            exec_time = end_time - start_time
+            results.append({
+                'n_features': X_test.shape[1],
+                'n_samples': X_test.shape[0],
+                'classifier': opt_name,
+                'parameters': params,
+                'execution_time': exec_time,
+                'task': "predict"
+            })
 
     return results
 

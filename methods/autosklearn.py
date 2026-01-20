@@ -4,6 +4,15 @@ import autosklearn.classification
 
 from AutoML_data_manager.data_manager import DataManager
 
+import os
+import sys
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(PROJECT_ROOT)
+
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 parser = argparse.ArgumentParser(description="Run SMAC with TPOT configuration.")
 parser.add_argument(
     'dataset_id',

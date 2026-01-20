@@ -153,6 +153,15 @@ from ConfigSpace import (
 )
 
 
+from ConfigSpace import (
+    ConfigurationSpace,
+    CategoricalHyperparameter,
+    UniformFloatHyperparameter,
+    UniformIntegerHyperparameter,
+)
+from ConfigSpace.conditions import EqualsCondition
+
+
 def get_tpot_configspace_classifiers_for_SMAC4AC_full():
     cs = ConfigurationSpace()
 
@@ -249,23 +258,21 @@ def get_tpot_configspace_classifiers_for_SMAC4AC_full():
     nys_gamma = UniformFloatHyperparameter("Nystroem__gamma", 0.0, 1.0)
     nys_comp = UniformIntegerHyperparameter("Nystroem__n_components", 1, 10)
     cs.add([nys_kernel, nys_gamma, nys_comp])
-    cs.add(EqualsCondition(nys_kernel, feature_engineering, "sklearn.kernel_approximation.Nystroem"))
-    cs.add(EqualsCondition(nys_gamma, feature_engineering, "sklearn.kernel_approximation.Nystroem"))
-    cs.add(EqualsCondition(nys_comp, feature_engineering, "sklearn.kernel_approximation.Nystroem"))
+    for hp in [nys_kernel, nys_gamma, nys_comp]:
+        cs.add(EqualsCondition(hp, feature_engineering, "sklearn.kernel_approximation.Nystroem"))
 
     pca_solver = CategoricalHyperparameter("PCA__svd_solver", ["randomized"])
     pca_power = UniformIntegerHyperparameter("PCA__iterated_power", 1, 10)
     cs.add([pca_solver, pca_power])
-    cs.add(EqualsCondition(pca_solver, feature_engineering, "sklearn.decomposition.PCA"))
-    cs.add(EqualsCondition(pca_power, feature_engineering, "sklearn.decomposition.PCA"))
+    for hp in [pca_solver, pca_power]:
+        cs.add(EqualsCondition(hp, feature_engineering, "sklearn.decomposition.PCA"))
 
     poly_deg = CategoricalHyperparameter("PolynomialFeatures__degree", [2])
     poly_bias = CategoricalHyperparameter("PolynomialFeatures__include_bias", [False])
     poly_inter = CategoricalHyperparameter("PolynomialFeatures__interaction_only", [False])
     cs.add([poly_deg, poly_bias, poly_inter])
-    cs.add(EqualsCondition(poly_deg, feature_engineering, "sklearn.preprocessing.PolynomialFeatures"))
-    cs.add(EqualsCondition(poly_bias, feature_engineering, "sklearn.preprocessing.PolynomialFeatures"))
-    cs.add(EqualsCondition(poly_inter, feature_engineering, "sklearn.preprocessing.PolynomialFeatures"))
+    for hp in [poly_deg, poly_bias, poly_inter]:
+        cs.add(EqualsCondition(hp, feature_engineering, "sklearn.preprocessing.PolynomialFeatures"))
 
     rbf_gamma = UniformFloatHyperparameter("RBFSampler__gamma", 0.0, 1.0)
     cs.add(rbf_gamma)
@@ -274,7 +281,8 @@ def get_tpot_configspace_classifiers_for_SMAC4AC_full():
     fwe_alpha = UniformFloatHyperparameter("SelectFwe__alpha", 0.0, 0.05)
     sp_pct = UniformIntegerHyperparameter("SelectPercentile__percentile", 1, 99)
     vt_thresh = CategoricalHyperparameter(
-        "VarianceThreshold__threshold", [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.2]
+        "VarianceThreshold__threshold",
+        [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.2],
     )
     cs.add([fwe_alpha, sp_pct, vt_thresh])
     cs.add(EqualsCondition(fwe_alpha, feature_engineering, "sklearn.feature_selection.SelectFwe"))
@@ -299,10 +307,10 @@ def get_tpot_configspace_classifiers_for_SMAC4AC_full():
     mnb_alpha = CategoricalHyperparameter("MultinomialNB__alpha", [1e-3, 1e-2, 1e-1, 1.0, 10.0, 100.0])
     mnb_fit = CategoricalHyperparameter("MultinomialNB__fit_prior", [True, False])
     cs.add([bnb_alpha, bnb_fit, mnb_alpha, mnb_fit])
-    cs.add(EqualsCondition(bnb_alpha, classifier, "sklearn.naive_bayes.BernoulliNB"))
-    cs.add(EqualsCondition(bnb_fit, classifier, "sklearn.naive_bayes.BernoulliNB"))
-    cs.add(EqualsCondition(mnb_alpha, classifier, "sklearn.naive_bayes.MultinomialNB"))
-    cs.add(EqualsCondition(mnb_fit, classifier, "sklearn.naive_bayes.MultinomialNB"))
+    for hp in [bnb_alpha, bnb_fit]:
+        cs.add(EqualsCondition(hp, classifier, "sklearn.naive_bayes.BernoulliNB"))
+    for hp in [mnb_alpha, mnb_fit]:
+        cs.add(EqualsCondition(hp, classifier, "sklearn.naive_bayes.MultinomialNB"))
 
     # KNN
     knn_k = UniformIntegerHyperparameter("KNeighborsClassifier__n_neighbors", 1, 100)
@@ -312,33 +320,74 @@ def get_tpot_configspace_classifiers_for_SMAC4AC_full():
     for hp in [knn_k, knn_w, knn_p]:
         cs.add(EqualsCondition(hp, classifier, "sklearn.neighbors.KNeighborsClassifier"))
 
-    # LinearSVC
-    lsvc_pen = CategoricalHyperparameter("LinearSVC__penalty", ["l1", "l2"])
-    lsvc_loss = CategoricalHyperparameter("LinearSVC__loss", ["hinge", "squared_hinge"])
-    lsvc_dual = CategoricalHyperparameter("LinearSVC__dual", [True, False])
-    lsvc_tol = CategoricalHyperparameter("LinearSVC__tol", [1e-5, 1e-4, 1e-3, 1e-2, 1e-1])
-    lsvc_c = CategoricalHyperparameter(
-        "LinearSVC__C", [1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1.0, 5.0, 10.0, 15.0, 20.0, 25.0]
-    )
-    cs.add([lsvc_pen, lsvc_loss, lsvc_dual, lsvc_tol, lsvc_c])
-    for hp in [lsvc_pen, lsvc_loss, lsvc_dual, lsvc_tol, lsvc_c]:
-        cs.add(EqualsCondition(hp, classifier, "sklearn.svm.LinearSVC"))
+    # DecisionTree
+    dt_crit = CategoricalHyperparameter("DecisionTreeClassifier__criterion", ["gini", "entropy"])
+    dt_depth = CategoricalHyperparameter("DecisionTreeClassifier__max_depth", [None, 5, 10, 20, 50])
+    dt_mss = UniformIntegerHyperparameter("DecisionTreeClassifier__min_samples_split", 2, 20)
+    dt_msl = UniformIntegerHyperparameter("DecisionTreeClassifier__min_samples_leaf", 1, 20)
+    cs.add([dt_crit, dt_depth, dt_mss, dt_msl])
+    for hp in [dt_crit, dt_depth, dt_mss, dt_msl]:
+        cs.add(EqualsCondition(hp, classifier, "sklearn.tree.DecisionTreeClassifier"))
 
-    # LogisticRegression
-    lr_pen = CategoricalHyperparameter("LogisticRegression__penalty", ["l1", "l2"])
-    lr_c = CategoricalHyperparameter(
-        "LogisticRegression__C", [1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1.0, 5.0, 10.0, 15.0, 20.0, 25.0]
-    )
-    lr_dual = CategoricalHyperparameter("LogisticRegression__dual", [True, False])
-    cs.add([lr_pen, lr_c, lr_dual])
-    cs.add(EqualsCondition(lr_pen, classifier, "sklearn.linear_model.LogisticRegression"))
-    cs.add(EqualsCondition(lr_c, classifier, "sklearn.linear_model.LogisticRegression"))
-    cs.add(EqualsCondition(lr_dual, classifier, "sklearn.linear_model.LogisticRegression"))
+    # RandomForest
+    rf_feat = CategoricalHyperparameter("RandomForestClassifier__max_features", ["sqrt", "log2", None])
+    rf_mss = UniformIntegerHyperparameter("RandomForestClassifier__min_samples_split", 2, 20)
+    rf_msl = UniformIntegerHyperparameter("RandomForestClassifier__min_samples_leaf", 1, 20)
+    rf_crit = CategoricalHyperparameter("RandomForestClassifier__criterion", ["gini", "entropy"])
+    rf_boot = CategoricalHyperparameter("RandomForestClassifier__bootstrap", [True, False])
+    cs.add([rf_feat, rf_mss, rf_msl, rf_crit, rf_boot])
+    for hp in [rf_feat, rf_mss, rf_msl, rf_crit, rf_boot]:
+        cs.add(EqualsCondition(hp, classifier, "sklearn.ensemble.RandomForestClassifier"))
+
+    # ExtraTrees
+    et_feat = CategoricalHyperparameter("ExtraTreesClassifier__max_features", ["sqrt", "log2", None])
+    et_mss = UniformIntegerHyperparameter("ExtraTreesClassifier__min_samples_split", 2, 20)
+    et_msl = UniformIntegerHyperparameter("ExtraTreesClassifier__min_samples_leaf", 1, 20)
+    et_crit = CategoricalHyperparameter("ExtraTreesClassifier__criterion", ["gini", "entropy"])
+    et_boot = CategoricalHyperparameter("ExtraTreesClassifier__bootstrap", [True, False])
+    cs.add([et_feat, et_mss, et_msl, et_crit, et_boot])
+    for hp in [et_feat, et_mss, et_msl, et_crit, et_boot]:
+        cs.add(EqualsCondition(hp, classifier, "sklearn.ensemble.ExtraTreesClassifier"))
+
+    # GradientBoosting
+    gb_lr = UniformFloatHyperparameter("GradientBoostingClassifier__learning_rate", 0.01, 1.0, log=True)
+    gb_depth = UniformIntegerHyperparameter("GradientBoostingClassifier__max_depth", 1, 5)
+    gb_mss = UniformIntegerHyperparameter("GradientBoostingClassifier__min_samples_split", 2, 20)
+    gb_msl = UniformIntegerHyperparameter("GradientBoostingClassifier__min_samples_leaf", 1, 20)
+    gb_sub = UniformFloatHyperparameter("GradientBoostingClassifier__subsample", 0.5, 1.0)
+    gb_feat = CategoricalHyperparameter("GradientBoostingClassifier__max_features", ["sqrt", "log2", None])
+    cs.add([gb_lr, gb_depth, gb_mss, gb_msl, gb_sub, gb_feat])
+    for hp in [gb_lr, gb_depth, gb_mss, gb_msl, gb_sub, gb_feat]:
+        cs.add(EqualsCondition(hp, classifier, "sklearn.ensemble.GradientBoostingClassifier"))
+
+    # Linear models / NN
+    sgd_loss = CategoricalHyperparameter("SGDClassifier__loss", ["hinge", "log_loss"])
+    sgd_alpha = UniformFloatHyperparameter("SGDClassifier__alpha", 1e-6, 1e-1, log=True)
+    sgd_lr = CategoricalHyperparameter("SGDClassifier__learning_rate", ["optimal", "invscaling", "adaptive"])
+    sgd_fit = CategoricalHyperparameter("SGDClassifier__fit_intercept", [True, False])
+    sgd_l1 = UniformFloatHyperparameter("SGDClassifier__l1_ratio", 0.0, 1.0)
+    sgd_eta = UniformFloatHyperparameter("SGDClassifier__eta0", 1e-4, 1.0, log=True)
+    sgd_pow = UniformFloatHyperparameter("SGDClassifier__power_t", 0.1, 0.9)
+    cs.add([sgd_loss, sgd_alpha, sgd_lr, sgd_fit, sgd_l1, sgd_eta, sgd_pow])
+    for hp in [sgd_loss, sgd_alpha, sgd_lr, sgd_fit, sgd_l1, sgd_eta, sgd_pow]:
+        cs.add(EqualsCondition(hp, classifier, "sklearn.linear_model.SGDClassifier"))
+
+    mlp_alpha = UniformFloatHyperparameter("MLPClassifier__alpha", 1e-6, 1e-1, log=True)
+    mlp_lr = UniformFloatHyperparameter("MLPClassifier__learning_rate_init", 1e-4, 1e-1, log=True)
+    cs.add([mlp_alpha, mlp_lr])
+    cs.add(EqualsCondition(mlp_alpha, classifier, "sklearn.neural_network.MLPClassifier"))
+    cs.add(EqualsCondition(mlp_lr, classifier, "sklearn.neural_network.MLPClassifier"))
+
+    # XGBoost
+    xgb_depth = UniformIntegerHyperparameter("XGBClassifier__max_depth", 1, 10)
+    xgb_lr = UniformFloatHyperparameter("XGBClassifier__learning_rate", 0.01, 1.0, log=True)
+    xgb_sub = UniformFloatHyperparameter("XGBClassifier__subsample", 0.5, 1.0)
+    xgb_child = UniformIntegerHyperparameter("XGBClassifier__min_child_weight", 1, 10)
+    cs.add([xgb_depth, xgb_lr, xgb_sub, xgb_child])
+    for hp in [xgb_depth, xgb_lr, xgb_sub, xgb_child]:
+        cs.add(EqualsCondition(hp, classifier, "xgboost.XGBClassifier"))
 
     return cs
-
-
-
 def update_log_filename(file_path: str, new_filename: str) -> str:
     with open(file_path, 'r') as file:
         config = yaml.safe_load(file)
@@ -356,6 +405,31 @@ def update_log_filename(file_path: str, new_filename: str) -> str:
 
     print(f"Log filename updated to '{new_filename}' and saved as '{output_file_path}'.")
     return output_file_path
+
+def adapt_meta_config_to_full_cs(meta_cfg: dict, cs) -> dict:
+    cfg = meta_cfg.copy()
+
+    # Extract legacy preprocessor
+    legacy = cfg.pop("preprocessor", None)
+
+    # Default structure
+    cfg.setdefault("preprocessing", "None")
+    cfg.setdefault("feature_engineering", "None")
+
+    # Map legacy preprocessor correctly
+    if legacy is not None:
+        if legacy.startswith("sklearn.preprocessing."):
+            cfg["preprocessing"] = legacy
+        else:
+            # PCA, FastICA, etc. belong to feature_engineering
+            cfg["feature_engineering"] = legacy
+
+    # Remove hyperparameters not in the ConfigSpace
+    valid = set(cs.get_hyperparameter_names())
+    cfg = {k: v for k, v in cfg.items() if k in valid}
+
+    return cfg
+
 
 def get_metalearning_pipelines(data_id):
     configspace = get_tpot_configspace_classifiers_for_SMAC4AC()
@@ -2554,8 +2628,15 @@ def get_metalearning_pipelines(data_id):
 
     # Build validated Configuration objects
     # Digits
+    full_cs = get_tpot_configspace_classifiers_for_SMAC4AC_full()
 
-    INITIAL_CONFIGS = [Configuration(configspace, values=d) for d in INITIAL_CONFIGS_VALUES]
+    INITIAL_CONFIGS = [
+        Configuration(full_cs, values=adapt_meta_config_to_full_cs(d, full_cs))
+        for d in INITIAL_CONFIGS_VALUES
+    ]
+
     return INITIAL_CONFIGS
+    #INITIAL_CONFIGS = [Configuration(configspace, values=d) for d in INITIAL_CONFIGS_VALUES]
+    #return INITIAL_CONFIGS
 
 
